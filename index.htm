@@ -3,720 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tweet to Image Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Tweetshot — Turn Tweets into Beautiful Images</title>
+    <meta name="description" content="Transform any X (Twitter) post into a stunning, shareable image. Free, fast, and no login required.">
+
+    <!-- Dependencies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            color-scheme: dark;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background:
-                radial-gradient(circle at top, rgba(29, 155, 240, 0.18), transparent 38%),
-                linear-gradient(180deg, #111827 0%, #030712 100%);
-        }
-        .tweet-text a {
-            color: #1d9bf0;
-        }
-        .tweet-card {
-            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
-        }
-        .tweet-text {
-            word-break: break-word;
-        }
-        .tweet-text a:hover {
-            text-decoration: underline;
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-        /* Image gallery grid layouts */
-        .media-grid {
-            display: grid;
-            gap: 4px;
-            margin-top: 16px;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        .media-grid.grid-1 {
-            grid-template-columns: 1fr;
-        }
-        .media-grid.grid-2 {
-            grid-template-columns: 1fr 1fr;
-        }
-        .media-grid.grid-3 {
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-        }
-        .media-grid.grid-3 .media-item:first-child {
-            grid-row: 1 / 3;
-        }
-        .media-grid.grid-4 {
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-        }
-        .media-grid .media-item {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .media-grid.grid-1 .media-item {
-            max-height: 400px;
-            object-fit: cover;
-        }
-        .media-grid.grid-2 .media-item,
-        .media-grid.grid-3 .media-item,
-        .media-grid.grid-4 .media-item {
-            height: 200px;
-        }
-        .media-grid.grid-3 .media-item:first-child {
-            height: 100%;
-        }
-
-        /* Quote tweet styles */
-        .quote-card {
-            margin-top: 16px;
-            padding: 16px;
-            border: 1px solid #2f3336;
-            border-radius: 16px;
-            background: #16181c;
-        }
-        .quote-card .quote-text {
-            word-break: break-word;
-        }
-        .quote-card .quote-text a {
-            color: #1d9bf0;
-        }
-
-        /* Export format buttons */
-        .format-btn {
-            transition: all 0.2s ease;
-        }
-        .format-btn:hover {
-            transform: translateY(-1px);
-        }
-        .format-btn.active {
-            ring: 2px;
-        }
-
-        /* Quality slider */
-        .quality-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            height: 6px;
-            border-radius: 3px;
-            background: #374151;
-            outline: none;
-        }
-        .quality-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            border: 2px solid #1e3a5f;
-        }
-        .quality-slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            border: 2px solid #1e3a5f;
-        }
-    </style>
+    <!-- App Styles -->
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-900 text-gray-100 flex flex-col items-center justify-center min-h-screen p-4 antialiased">
+<body>
 
-    <!-- Main Container -->
-    <div class="w-full max-w-2xl mx-auto">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">Tweet to Image</h1>
-            <p class="text-lg text-gray-400">turn any x (twitter) post into a beautiful, shareable image.</p>
+    <!-- Ambient Background -->
+    <div class="ambient-bg" aria-hidden="true">
+        <div class="ambient-orb ambient-orb--1"></div>
+        <div class="ambient-orb ambient-orb--2"></div>
+        <div class="ambient-orb ambient-orb--3"></div>
+    </div>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- App -->
+    <div class="app">
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header__badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                free &amp; instant
+            </div>
+            <h1 class="header__title">Tweetshot</h1>
+            <p class="header__subtitle">Transform any X (Twitter) post into a stunning, shareable image.</p>
         </header>
 
-        <!-- Input Form -->
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-lg">
-            <form id="tweet-form" class="flex flex-col sm:flex-row items-center gap-4">
-                <div class="relative w-full">
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+        <!-- Input Card -->
+        <div class="input-card">
+            <form id="tweet-form" class="input-wrapper">
+                <div class="input-field-wrapper">
+                    <input type="url" id="tweet-url" class="input-field" placeholder="Paste a tweet URL..." required autocomplete="off">
+                    <div class="input-field-wrapper__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                     </div>
-                    <input type="url" id="tweet-url" placeholder="paste tweet url here..." class="w-full bg-gray-900 border border-gray-600 text-white rounded-lg p-4 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-300" required>
                 </div>
-                <button type="submit" id="generate-btn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg flex items-center justify-center gap-2 transition duration-300 whitespace-nowrap">
-                    <svg id="rocket-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <svg id="spinner-icon" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="btn-text">generate</span>
+                <button type="submit" id="generate-btn" class="generate-btn">
+                    <svg id="icon-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <svg id="icon-spinner" class="animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25"/><path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span id="btn-text">Generate</span>
                 </button>
             </form>
-            <div id="error-message" class="text-red-400 mt-4 text-center hidden"></div>
         </div>
 
-        <!-- Result Display -->
-        <div id="result" class="mt-8 text-center hidden">
-            <h2 class="text-2xl font-semibold mb-4 text-white">your image is ready!</h2>
-            <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 inline-block">
-                <img id="result-image" class="rounded-lg max-w-full h-auto">
+        <!-- Skeleton Loader -->
+        <div id="skeleton" class="skeleton-card hidden">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+                <div class="skeleton-circle" style="width:48px;height:48px;flex-shrink:0"></div>
+                <div style="flex:1">
+                    <div class="skeleton-line" style="width:40%;margin-bottom:8px"></div>
+                    <div class="skeleton-line" style="width:25%;height:10px"></div>
+                </div>
+            </div>
+            <div class="skeleton-line" style="width:95%;margin-bottom:10px;height:16px"></div>
+            <div class="skeleton-line" style="width:80%;margin-bottom:10px;height:16px"></div>
+            <div class="skeleton-line" style="width:60%;margin-bottom:20px;height:16px"></div>
+            <div class="skeleton-rect" style="width:100%;height:200px;margin-bottom:20px"></div>
+            <div style="display:flex;gap:24px">
+                <div class="skeleton-line" style="width:60px;height:10px"></div>
+                <div class="skeleton-line" style="width:60px;height:10px"></div>
+                <div class="skeleton-line" style="width:60px;height:10px"></div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="result" class="result-section hidden">
+            <div class="result-header">
+                <h2 class="result-header__title">✨ Your image is ready</h2>
             </div>
 
-            <!-- Export Format Controls -->
-            <div class="mt-6 bg-gray-800 border border-gray-700 rounded-xl p-5 inline-block w-full max-w-md">
-                <p class="text-sm text-gray-400 mb-3 font-medium">export format</p>
-                <div class="flex items-center justify-center gap-3 mb-4">
-                    <button data-format="png" class="format-btn active bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg text-sm">PNG</button>
-                    <button data-format="jpeg" class="format-btn bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-5 rounded-lg text-sm">JPEG</button>
-                    <button data-format="webp" class="format-btn bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-5 rounded-lg text-sm">WebP</button>
-                </div>
-                <div id="quality-control" class="hidden">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs text-gray-400">quality</span>
-                        <span id="quality-value" class="text-xs text-gray-300 font-mono">92%</span>
+            <div class="result-preview">
+                <img id="result-image" alt="Generated tweet image">
+            </div>
+
+            <!-- Export Controls -->
+            <div class="export-controls">
+                <div class="export-row">
+                    <span class="export-label">Format</span>
+                    <div class="format-pills">
+                        <button data-format="png" class="format-pill active">PNG</button>
+                        <button data-format="jpeg" class="format-pill">JPEG</button>
+                        <button data-format="webp" class="format-pill">WebP</button>
                     </div>
-                    <input type="range" id="quality-slider" class="quality-slider w-full" min="10" max="100" value="92">
+                </div>
+                <div id="quality-control" class="quality-row hidden">
+                    <span class="export-label">Quality</span>
+                    <div class="quality-slider-wrap">
+                        <input type="range" id="quality-slider" class="quality-slider" min="10" max="100" value="92">
+                        <span id="quality-value" class="quality-value">92%</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-4">
-                <a id="download-btn" href="#" download="tweet.png" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    <span id="download-btn-text">download PNG</span>
+            <!-- Action Buttons -->
+            <div class="action-row">
+                <a id="download-btn" href="#" download="tweet.png" class="action-btn action-btn--download">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span id="download-btn-text">Download PNG</span>
                 </a>
+                <button id="copy-btn" class="action-btn action-btn--copy" type="button">
+                    <svg id="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    <svg id="check-icon" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span id="copy-btn-text">Copy to clipboard</span>
+                </button>
             </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>built by <a href="https://github.com/dashaneka" target="_blank" rel="noopener">rajnish bodha</a></p>
+        </footer>
     </div>
 
-    <!-- Hidden Canvas Source -->
-    <div id="tweet-canvas-source" class="tweet-card fixed top-0 left-[-9999px] p-8 bg-black border border-gray-800 rounded-2xl" style="width: 680px;">
-        <div class="flex items-start justify-between">
-            <div class="flex items-center gap-4">
-                <img id="avatar" src="https://placehold.co/48x48/1a202c/ffffff?text=?" class="w-12 h-12 rounded-full">
-                <div>
-                    <p id="author-name" class="font-bold text-lg text-white">author name</p>
-                    <p id="author-handle" class="text-md text-gray-500">@handle</p>
+    <!-- ========================================
+         HIDDEN CANVAS SOURCE (rendered by html2canvas)
+         ======================================== -->
+    <div id="tweet-canvas-source" class="tweet-card-source">
+        <div class="tc-inner">
+            <!-- Header: avatar + name/handle + X logo -->
+            <div class="tc-header">
+                <img id="tc-avatar" class="tc-avatar" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+                <div class="tc-author">
+                    <div id="tc-name" class="tc-name">Author</div>
+                    <div id="tc-handle" class="tc-handle">@handle</div>
+                </div>
+                <svg class="tc-x-logo" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </div>
+
+            <!-- Tweet body -->
+            <div id="tc-body" class="tc-body"></div>
+
+            <!-- Media -->
+            <img id="tc-single-media" class="tc-single-media" src="">
+            <div id="tc-media-gallery" class="tc-media-grid hidden"></div>
+
+            <!-- Quote Tweet -->
+            <div id="tc-quote" class="tc-quote hidden">
+                <div class="tc-quote-header">
+                    <img id="tc-quote-avatar" class="tc-quote-avatar" src="">
+                    <span id="tc-quote-name" class="tc-quote-name"></span>
+                    <span id="tc-quote-handle" class="tc-quote-handle"></span>
+                </div>
+                <div id="tc-quote-body" class="tc-quote-body"></div>
+                <div id="tc-quote-media" class="tc-media-grid hidden" style="margin-top:10px"></div>
+            </div>
+
+            <!-- Timestamp -->
+            <div id="tc-timestamp" class="tc-timestamp">10:40 PM · Apr 27, 2026</div>
+
+            <!-- Divider -->
+            <div class="tc-divider"></div>
+
+            <!-- Stats -->
+            <div class="tc-stats">
+                <div class="tc-stat tc-stat--reply">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                    <span id="tc-replies">0</span>
+                </div>
+                <div class="tc-stat tc-stat--repost">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 01-4 4H3"/></svg>
+                    <span id="tc-reposts">0</span>
+                </div>
+                <div class="tc-stat tc-stat--like">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                    <span id="tc-likes">0</span>
+                </div>
+                <div class="tc-stat tc-stat--bookmark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
                 </div>
             </div>
         </div>
-        <p id="tweet-text" class="tweet-text text-2xl text-gray-200 mt-5 leading-normal whitespace-pre-wrap"></p>
-
-        <!-- Single image (legacy, kept for single-photo fallback) -->
-        <img id="tweet-media" src="" class="hidden mt-4 rounded-2xl border border-gray-800 w-full">
-
-        <!-- Multi-image gallery -->
-        <div id="media-gallery" class="media-grid hidden"></div>
-
-        <!-- Quote Tweet -->
-        <div id="quote-tweet" class="quote-card hidden">
-            <div class="flex items-center gap-2 mb-2">
-                <img id="quote-avatar" class="w-6 h-6 rounded-full" src="">
-                <span id="quote-author" class="text-sm font-bold text-white">author</span>
-                <span id="quote-handle" class="text-sm text-gray-500">@handle</span>
-            </div>
-            <p id="quote-text" class="quote-text text-sm text-gray-300 whitespace-pre-wrap"></p>
-            <!-- Quote tweet media -->
-            <div id="quote-media-gallery" class="media-grid hidden mt-3"></div>
-        </div>
-
-        <!-- Tweet Stats -->
-        <div id="tweet-stats" class="mt-5 pt-4 border-t border-gray-700 flex items-center gap-8 text-gray-500">
-            <div class="flex items-center gap-2" title="replies">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
-                <span id="reply-count" class="font-medium text-sm leading-none">0</span>
-            </div>
-            <div class="flex items-center gap-2" title="reposts">
-                 <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>
-                <span id="repost-count" class="font-medium text-sm leading-none">0</span>
-            </div>
-            <div class="flex items-center gap-2" title="likes">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                <span id="like-count" class="font-medium text-sm leading-none">0</span>
-            </div>
-        </div>
-        <div class="mt-4 flex items-center justify-between text-gray-500">
-            <p id="tweet-timestamp" class="text-md">time · date</p>
-            <p class="text-md font-semibold text-gray-400">rajnish bodha</p>
-        </div>
     </div>
 
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('tweet-form');
-            const urlInput = document.getElementById('tweet-url');
-            const resultDiv = document.getElementById('result');
-            const resultImage = document.getElementById('result-image');
-            const downloadBtn = document.getElementById('download-btn');
-            const downloadBtnText = document.getElementById('download-btn-text');
-            const errorMessage = document.getElementById('error-message');
-
-            // --- UI Elements for button state ---
-            const generateBtn = document.getElementById('generate-btn');
-            const btnText = document.getElementById('btn-text');
-            const rocketIcon = document.getElementById('rocket-icon');
-            const spinnerIcon = document.getElementById('spinner-icon');
-
-            // --- Canvas Source Elements ---
-            const canvasSource = document.getElementById('tweet-canvas-source');
-            const avatar = document.getElementById('avatar');
-            const authorName = document.getElementById('author-name');
-            const authorHandle = document.getElementById('author-handle');
-            const tweetText = document.getElementById('tweet-text');
-            const tweetMedia = document.getElementById('tweet-media');
-            const mediaGallery = document.getElementById('media-gallery');
-            const tweetTimestamp = document.getElementById('tweet-timestamp');
-
-            // --- Quote Tweet Elements ---
-            const quoteTweetEl = document.getElementById('quote-tweet');
-            const quoteAvatar = document.getElementById('quote-avatar');
-            const quoteAuthor = document.getElementById('quote-author');
-            const quoteHandle = document.getElementById('quote-handle');
-            const quoteTextEl = document.getElementById('quote-text');
-            const quoteMediaGallery = document.getElementById('quote-media-gallery');
-
-            // --- Canvas Stat Elements ---
-            const replyCountEl = document.getElementById('reply-count');
-            const repostCountEl = document.getElementById('repost-count');
-            const likeCountEl = document.getElementById('like-count');
-            const avatarFallback = createFallbackAvatarDataUrl();
-
-            // --- Export Format State ---
-            let selectedFormat = 'png';
-            let selectedQuality = 0.92;
-            let lastCanvasResult = null; // cache the html2canvas result
-
-            const formatBtns = document.querySelectorAll('[data-format]');
-            const qualityControl = document.getElementById('quality-control');
-            const qualitySlider = document.getElementById('quality-slider');
-            const qualityValue = document.getElementById('quality-value');
-
-            formatBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    formatBtns.forEach(b => {
-                        b.classList.remove('active', 'bg-blue-600');
-                        b.classList.add('bg-gray-700');
-                    });
-                    btn.classList.add('active', 'bg-blue-600');
-                    btn.classList.remove('bg-gray-700');
-
-                    selectedFormat = btn.dataset.format;
-
-                    // Show quality slider for lossy formats
-                    if (selectedFormat === 'jpeg' || selectedFormat === 'webp') {
-                        qualityControl.classList.remove('hidden');
-                    } else {
-                        qualityControl.classList.add('hidden');
-                    }
-
-                    updateExportFromCache();
-                });
-            });
-
-            qualitySlider.addEventListener('input', (e) => {
-                selectedQuality = parseInt(e.target.value) / 100;
-                qualityValue.textContent = `${e.target.value}%`;
-                updateExportFromCache();
-            });
-
-            function updateExportFromCache() {
-                if (!lastCanvasResult) return;
-
-                const mimeType = selectedFormat === 'jpeg' ? 'image/jpeg' : selectedFormat === 'webp' ? 'image/webp' : 'image/png';
-                const quality = selectedFormat === 'png' ? undefined : selectedQuality;
-                const dataUrl = lastCanvasResult.toDataURL(mimeType, quality);
-
-                resultImage.src = dataUrl;
-                downloadBtn.href = dataUrl;
-
-                const ext = selectedFormat === 'jpeg' ? 'jpg' : selectedFormat;
-                const baseName = downloadBtn.download.replace(/\.[^.]+$/, '');
-                downloadBtn.download = `${baseName}.${ext}`;
-                downloadBtnText.textContent = `download ${selectedFormat.toUpperCase()}`;
-            }
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                hideError();
-                resultDiv.classList.add('hidden');
-
-                const tweetUrl = urlInput.value.trim();
-                const tweetId = getTweetId(tweetUrl);
-
-                if (!tweetId) {
-                    showError("invalid twitter url. please check and try again.");
-                    setLoading(false);
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`https://api.fxtwitter.com/status/${tweetId}`);
-                    if (!response.ok) {
-                        throw new Error(`could not fetch tweet. status: ${response.status}`);
-                    }
-                    const data = await response.json();
-
-                    if (!data.tweet) {
-                        throw new Error("the api did not return valid tweet data.");
-                    }
-                    
-                    await renderTweetToCanvas(data.tweet);
-
-                } catch (error) {
-                    console.error('error fetching or processing tweet:', error);
-                    showError("failed to fetch tweet data. the tweet might be private or deleted.");
-                    setLoading(false);
-                }
-            });
-
-            function setLoading(isLoading) {
-                if (isLoading) {
-                    generateBtn.disabled = true;
-                    btnText.textContent = 'generating...';
-                    rocketIcon.classList.add('hidden');
-                    spinnerIcon.classList.remove('hidden');
-                } else {
-                    generateBtn.disabled = false;
-                    btnText.textContent = 'generate';
-                    rocketIcon.classList.remove('hidden');
-                    spinnerIcon.classList.add('hidden');
-                }
-            }
-
-            function showError(message) {
-                errorMessage.textContent = message;
-                errorMessage.classList.remove('hidden');
-            }
-
-            function hideError() {
-                errorMessage.classList.add('hidden');
-            }
-
-            function getTweetId(url) {
-                try {
-                    const urlObject = new URL(url);
-                    const allowedHosts = new Set(['twitter.com', 'www.twitter.com', 'x.com', 'www.x.com']);
-                    if (!allowedHosts.has(urlObject.hostname.toLowerCase())) {
-                        return null;
-                    }
-                    const pathParts = urlObject.pathname.split('/');
-                    const statusIndex = pathParts.indexOf('status');
-                    if (statusIndex !== -1) {
-                        const candidate = pathParts[statusIndex + 1] || '';
-                        return /^\d+$/.test(candidate) ? candidate : null;
-                    }
-                    return null;
-                } catch (error) {
-                    return null;
-                }
-            }
-
-            function formatNumber(num) {
-                if (num >= 1000000) {
-                    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-                }
-                if (num >= 1000) {
-                    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-                }
-                return num.toString();
-            }
-
-            function createLinkifiedTweetText(text) {
-                const fragment = document.createDocumentFragment();
-                const normalizedText = typeof text === 'string' ? text : '';
-                const urlRegex = /https?:\/\/[^\s]+/g;
-                let lastIndex = 0;
-
-                normalizedText.replace(urlRegex, (match, offset) => {
-                    if (offset > lastIndex) {
-                        fragment.appendChild(document.createTextNode(normalizedText.slice(lastIndex, offset)));
-                    }
-
-                    const link = document.createElement('a');
-                    link.href = match;
-                    link.target = '_blank';
-                    link.rel = 'noopener noreferrer';
-                    link.textContent = match;
-                    fragment.appendChild(link);
-
-                    lastIndex = offset + match.length;
-                    return match;
-                });
-
-                if (lastIndex < normalizedText.length) {
-                    fragment.appendChild(document.createTextNode(normalizedText.slice(lastIndex)));
-                }
-
-                return fragment;
-            }
-
-            const CORS_PROXIES = [
-                (url) => `https://wsrv.nl/?url=${encodeURIComponent(url)}&default=1`,
-                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-            ];
-
-            function createFallbackAvatarDataUrl() {
-                const svg = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-                        <rect width="96" height="96" rx="48" fill="#111827" />
-                        <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#f9fafb" font-size="40" font-family="Inter, Arial, sans-serif">@</text>
-                    </svg>
-                `;
-                return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-            }
-
-            function blobToDataUrl(blob) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-            }
-
-            async function fetchImageAsDataUrl(url) {
-                if (!url) {
-                    return '';
-                }
-
-                for (const buildProxy of CORS_PROXIES) {
-                    try {
-                        const proxyUrl = buildProxy(url);
-                        const response = await fetch(proxyUrl, { mode: 'cors' });
-                        if (!response.ok) continue;
-
-                        const blob = await response.blob();
-                        if (blob.size === 0) continue;
-
-                        return await blobToDataUrl(blob);
-                    } catch (e) {
-                        console.warn('proxy failed, trying next:', e.message);
-                    }
-                }
-
-                throw new Error('all proxies failed for image: ' + url);
-            }
-
-            function waitForImageLoad(img, src, fallbackSrc = '') {
-                return new Promise((resolve) => {
-                    const cleanup = () => {
-                        img.onload = null;
-                        img.onerror = null;
-                    };
-
-                    const handleLoad = () => {
-                        cleanup();
-                        resolve(true);
-                    };
-
-                    const handleError = () => {
-                        cleanup();
-                        if (fallbackSrc && img.src !== fallbackSrc) {
-                            waitForImageLoad(img, fallbackSrc).then(resolve);
-                            return;
-                        }
-                        resolve(false);
-                    };
-
-                    img.onload = handleLoad;
-                    img.onerror = handleError;
-
-                    if (!src) {
-                        handleError();
-                        return;
-                    }
-
-                    img.src = src;
-
-                    if (img.complete && img.naturalWidth > 0) {
-                        handleLoad();
-                    }
-                });
-            }
-
-            async function hydrateImage(img, imageUrl, fallbackSrc = '') {
-                try {
-                    const dataUrl = await fetchImageAsDataUrl(imageUrl);
-                    return waitForImageLoad(img, dataUrl, fallbackSrc);
-                } catch (error) {
-                    console.warn('image hydration failed:', imageUrl, error);
-                    if (fallbackSrc) {
-                        return waitForImageLoad(img, fallbackSrc);
-                    }
-                    return false;
-                }
-            }
-
-            function waitForNextPaint() {
-                return new Promise((resolve) => {
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(resolve);
-                    });
-                });
-            }
-
-            // --- Image Gallery ---
-            async function buildMediaGallery(container, photos) {
-                container.innerHTML = '';
-                if (!photos || photos.length === 0) {
-                    container.classList.add('hidden');
-                    return [];
-                }
-
-                const count = Math.min(photos.length, 4);
-                container.classList.remove('hidden');
-                container.className = container.className.replace(/grid-\d/g, '').trim();
-                container.classList.add('media-grid', `grid-${count}`);
-
-                const imagePromises = [];
-
-                for (let i = 0; i < count; i++) {
-                    const img = document.createElement('img');
-                    img.className = 'media-item';
-                    img.alt = `tweet photo ${i + 1}`;
-                    container.appendChild(img);
-                    imagePromises.push(hydrateImage(img, photos[i].url));
-                }
-
-                return Promise.all(imagePromises);
-            }
-
-            // --- Quote Tweet ---
-            async function renderQuoteTweet(quote) {
-                if (!quote) {
-                    quoteTweetEl.classList.add('hidden');
-                    quoteMediaGallery.classList.add('hidden');
-                    return;
-                }
-
-                quoteTweetEl.classList.remove('hidden');
-                const qAuthor = quote.author || {};
-                quoteAuthor.textContent = qAuthor.name || 'Unknown';
-                quoteHandle.textContent = qAuthor.screen_name ? `@${qAuthor.screen_name}` : '@unknown';
-                quoteTextEl.replaceChildren(createLinkifiedTweetText(quote.text || ''));
-
-                // Quote avatar
-                const quoteAvatarPromise = hydrateImage(quoteAvatar, qAuthor.avatar_url, avatarFallback);
-
-                // Quote media
-                const quotePhotos = quote.media?.photos || [];
-                const quoteMediaPromise = buildMediaGallery(quoteMediaGallery, quotePhotos);
-
-                await Promise.all([quoteAvatarPromise, quoteMediaPromise]);
-            }
-
-            // --- Export ---
-            async function exportTweetCard() {
-                const origPosition = canvasSource.style.position;
-                const origLeft = canvasSource.style.left;
-                canvasSource.style.position = 'fixed';
-                canvasSource.style.left = '-9999px';
-                canvasSource.style.top = '0';
-
-                const scale = Math.min(window.devicePixelRatio || 1, 2);
-
-                try {
-                    const canvas = await html2canvas(canvasSource, {
-                        backgroundColor: '#000000',
-                        scale: scale,
-                        useCORS: true,
-                        allowTaint: false,
-                        logging: false,
-                    });
-
-                    // Cache the canvas for format switching
-                    lastCanvasResult = canvas;
-
-                    const mimeType = selectedFormat === 'jpeg' ? 'image/jpeg' : selectedFormat === 'webp' ? 'image/webp' : 'image/png';
-                    const quality = selectedFormat === 'png' ? undefined : selectedQuality;
-                    return canvas.toDataURL(mimeType, quality);
-                } finally {
-                    canvasSource.style.position = origPosition;
-                    canvasSource.style.left = origLeft;
-                }
-            }
-
-            async function renderTweetToCanvas(tweet) {
-                const author = tweet.author || {};
-                authorName.textContent = author.name || 'Unknown author';
-                authorHandle.textContent = author.screen_name ? `@${author.screen_name}` : '@unknown';
-                tweetText.replaceChildren(createLinkifiedTweetText(tweet.text || ''));
-
-                const avatarPromise = hydrateImage(
-                    avatar,
-                    author.avatar_url,
-                    avatarFallback
-                );
-
-                // --- Handle media: single vs gallery ---
-                const photos = tweet.media?.photos || [];
-                let mediaPromise;
-
-                if (photos.length > 1) {
-                    // Multi-image: use gallery grid
-                    tweetMedia.classList.add('hidden');
-                    tweetMedia.removeAttribute('src');
-                    mediaPromise = buildMediaGallery(mediaGallery, photos);
-                } else if (photos.length === 1) {
-                    // Single image: use the original single img tag
-                    mediaGallery.classList.add('hidden');
-                    mediaGallery.innerHTML = '';
-                    tweetMedia.classList.remove('hidden');
-                    mediaPromise = hydrateImage(tweetMedia, photos[0].url).then(loaded => {
-                        if (!loaded) tweetMedia.classList.add('hidden');
-                    });
-                } else {
-                    // No images
-                    tweetMedia.classList.add('hidden');
-                    tweetMedia.removeAttribute('src');
-                    mediaGallery.classList.add('hidden');
-                    mediaGallery.innerHTML = '';
-                    mediaPromise = Promise.resolve();
-                }
-
-                // --- Handle quote tweet ---
-                const quotePromise = renderQuoteTweet(tweet.quote || null);
-
-                const hasTimestamp = Number.isFinite(tweet.created_timestamp);
-                if (hasTimestamp) {
-                    const tweetDate = new Date(tweet.created_timestamp * 1000);
-                    const timeFormat = new Intl.DateTimeFormat('en-us', { hour: 'numeric', minute: 'numeric', hour12: true });
-                    const dateFormat = new Intl.DateTimeFormat('en-us', { month: 'short', day: 'numeric', year: 'numeric' });
-                    tweetTimestamp.textContent = `${timeFormat.format(tweetDate)} · ${dateFormat.format(tweetDate)}`;
-                } else {
-                    tweetTimestamp.textContent = 'Unknown time';
-                }
-
-                replyCountEl.textContent = formatNumber(tweet.replies || 0);
-                repostCountEl.textContent = formatNumber(tweet.retweets || 0);
-                likeCountEl.textContent = formatNumber(tweet.likes || 0);
-
-                const ext = selectedFormat === 'jpeg' ? 'jpg' : selectedFormat;
-                downloadBtn.download = `tweet-${tweet.id || Date.now()}.${ext}`;
-                downloadBtnText.textContent = `download ${selectedFormat.toUpperCase()}`;
-
-                await Promise.all([avatarPromise, mediaPromise, quotePromise]);
-                await waitForNextPaint();
-
-                try {
-                    const imageUrl = await exportTweetCard();
-                    resultImage.src = imageUrl;
-                    downloadBtn.href = imageUrl;
-                    resultDiv.classList.remove('hidden');
-                } catch(e) {
-                    console.error("html2canvas error:", e);
-                    showError(`there was an error creating the image${e?.message ? `: ${e.message}` : '.'}`);
-                } finally {
-                    setLoading(false);
-                }
-            }
-        });
-    </script>
+    <!-- App Script -->
+    <script src="app.js"></script>
 </body>
 </html>
